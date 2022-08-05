@@ -275,36 +275,59 @@ static void place(block_t *block, size_t asize) {
         footer_t *new_footer = get_footer(new_block);
         new_footer->block_size = split_size;
         new_footer->allocated = FREE;
+
         new_block->body.prev = (void*)Prev;
         new_block->body.next = (void*)Next;
-        if (Prev != NULL)
-            Prev->body.next = (void*)new_block;
-        if (Next != NULL)
-            Next->body.prev = (void*)new_block;
-        firstFree = new_block;
-        firstFree->body.prev = NULL;
-    } else { //#1
+        if (block == firstFree)
+        {
+            firstFree = new_block;
+            firstFree->body.prev = NULL;
+            firstFree->body.next = (void*)Next;
+            if (Next != NULL)
+            {
+                Next->body.prev = (void*)new_block;
+            }
+        }
+        else {
+            if (Prev != NULL)
+                Prev->body.next = (void*)new_block;
+            if (Next != NULL)
+                Next->body.prev = (void*)new_block;
+            new_block->body.prev = (void*)Prev;
+            new_block->body.next = (void*)Next;
+        }
+    } else { //#2
         /* splitting the block will cause a splinter so we just include it in the allocated block */
         block->allocated = ALLOC;
         footer_t *footer = get_footer(block);
         footer->allocated = ALLOC;
-        if (Prev != NULL)
+
+        if (block == firstFree)
         {
-            Prev->body.next = (void*)Next; 
-            firstFree = Prev; 
-            firstFree->body.prev = NULL;
-        }    
-        if (Next != NULL)
-        {
-            Next->body.prev = (void*)Prev;
-            firstFree = Next;
-            firstFree->body.prev = NULL;
+            if (firstFree->body.next == NULL)
+                firstFree = NULL; //full
+            else {
+                firstFree = (void*)firstFree->body.next;
+                firstFree->body.prev = NULL;
+            }
         }
-        if (Prev == NULL && Next == NULL)
-        {
-            firstFree = NULL; //full, no more free
-            firstFree->body.prev = NULL;
-            firstFree->body.next = NULL;
+        else {
+            if (Prev != NULL) //only null if block = firstFree
+            {
+                Prev->body.next = (void*)Next; 
+                //firstFree = Prev; 
+                //firstFree->body.prev = NULL;
+            }    
+            if (Next != NULL)
+            {
+                Next->body.prev = (void*)Prev;
+                //firstFree = Next;
+                //firstFree->body.prev = NULL;
+            }
+            if (Prev == NULL && Next == NULL)
+            {
+                firstFree = NULL; //full, no more free
+            }
         }
     }
 }

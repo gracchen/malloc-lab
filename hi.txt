@@ -1,17 +1,24 @@
-
-free:0x7f5d8ef23b10
+free:0x7fa5f14f0b90
 case 1
-0x7f5d8ef23b10: header: [4088:f] footer: [4088:f]
-0x7f5d8ef30aa8: header: [4088:f] footer: [4088:f]
-0x7f5d8ef35a80: header: [4088:f] footer: [4088:f]
-0x7f5d8ef3aa58: header: [4088:f] footer: [4088:f]
-0x7f5d8ef479f0: header: [4088:f] footer: [4088:f]
-0x7f5d8ef4f9b0: header: [4088:f] footer: [4088:f]
-0x7f5d8ef42a18: header: [4088:f] footer: [4088:f]
-0x7f5d8ef52998: header: [4088:f] footer: [4088:f]
-0x7f5d8ef58968: header: [38560:f] footer: [38560:f]
+0x7fa5f14f0b90: header: [4088:f] footer: [4088:f]
+0x7fa5f14fdb28: header: [4088:f] footer: [4088:f]
+0x7fa5f1502b00: header: [4088:f] footer: [4088:f]
+0x7fa5f1507ad8: header: [4088:f] footer: [4088:f]
+0x7fa5f1514a70: header: [4088:f] footer: [4088:f]
+0x7fa5f151ca30: header: [4088:f] footer: [4088:f]
+0x7fa5f150fa98: header: [4088:f] footer: [4088:f]
+0x7fa5f151fa18: header: [4088:f] footer: [4088:f]
+0x7fa5f15259e8: header: [34336:f] footer: [34336:f]
 
-free:0x7f5d8ef519a0
+free:0x7fa5f151ea20
 case 3
-0x7f5d8ef519a0: header: [8176:f] footer: [8176:f]
-0x7f5d8ef58968: header: [38560:f] footer: [38560:f]
+0x7fa5f14f0b90: header: [4088:f] footer: [4088:f]
+0x7fa5f14fdb28: header: [4088:f] footer: [4088:f]
+0x7fa5f1502b00: header: [4088:f] footer: [4088:f]
+0x7fa5f1507ad8: header: [4088:f] footer: [4088:f]
+0x7fa5f1514a70: header: [4088:f] footer: [4088:f]
+0x7fa5f151ca30: header: [4088:f] footer: [4088:f]
+0x7fa5f150fa98: header: [4088:f] footer: [4088:f]
+0x7fa5f151ea20: header: [8176:f] footer: [8176:f]
+0x7fa5f15259e8: header: [34336:f] footer: [34336:f]
+//now case 3 works as intended in this case

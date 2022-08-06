@@ -428,17 +428,16 @@ static block_t *coalesce(block_t *block) {
         /* Update footer of next block to reflect new size */
         footer_t *next_footer = get_footer(block);
         next_footer->block_size = block->block_size;
-        firstFree = (void*)block; //force current as root of list;
-        firstFree->body.prev = NULL;
+        
         block_t* next_block = (void*)next_header;
         block_t* Prev = (void *)next_block->body.prev;
         block_t* Next = (void *)next_block->body.next;
         
         if (Prev != NULL)
-            Prev->body.next = (void *)Next; //update parent
+            Prev->body.next = (void *)block; //update parent
         
         if (Next != NULL) //update child
-            Next->body.prev = (void *)Prev;
+            Next->body.prev = (void *)block;
         block->body.next = (void*)Next;   //???????PREV
         block->body.prev = (void*)Prev;
     }
@@ -486,23 +485,12 @@ static block_t *coalesce(block_t *block) {
         block_t* next_block = (void*)next_header;
 
         block_t *prevPrev = (void *)prev_block->body.prev;
-        block_t *prevNext = (void *)prev_block->body.next;
-        block_t *nextPrev = (void *)next_block->body.prev;
         block_t *nextNext = (void *)next_block->body.next;
 
         if (prevPrev != NULL)
-            prevPrev->body.next = (void *)prevNext; 
-        if (prevNext != NULL)
-            prevNext->body.prev = (void *)prevPrev;
-        if (nextPrev != NULL)
-            nextPrev->body.next = (void *)nextNext; 
+            prevPrev->body.next = (void *)block; 
         if (nextNext != NULL)
-            nextNext->body.prev = (void *)nextPrev;
-        firstFree = prev_block;
-        firstFree->body.prev = NULL;
-        oldFirstFree->body.prev = (void *)firstFree;
-        prev_block->body.next = (void *)oldFirstFree;
-
+            nextNext->body.prev = (void *)block;
     }
 
     return block;

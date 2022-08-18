@@ -68,7 +68,7 @@ enum block_state { FREE,
                    ALLOC };
 
 //#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
-#define CHUNKSIZE (4088*3+16)
+#define CHUNKSIZE (4088*1+16)
 block_t *root;
 #define OVERHEAD (sizeof(header_t) + sizeof(footer_t)) /* overhead of the header and footer of an allocated block */
 #define MIN_BLOCK_SIZE (32) /* the minimum block size needed to keep in a freelist (header + footer + next pointer + prev pointer) */
@@ -232,6 +232,7 @@ void mm_checkheap(int verbose) {
 /* $begin mmextendheap */
 static block_t *extend_heap(size_t words) {
     printf("extend_heap(%d)\n", (int)words);
+    printList();
     block_t *block;
     uint32_t size;
     size = words << 3; // words*8
@@ -316,7 +317,6 @@ static block_t *coalesce(block_t *block) {
     
     bool prev_alloc = prev_footer->allocated;
     bool next_alloc = next_header->allocated;
-    printf("prev_alloc: %d, next_alloc: %d\n", prev_alloc, next_alloc);
     if (prev_alloc && next_alloc) { /* Case 1 */
         printf("case 1\n");
         insertBlock(block);

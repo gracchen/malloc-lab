@@ -94,7 +94,7 @@ int printALL();
  */
 /* $begin mminit */
 int mm_init(void) {
-    printf("-----------------------------------\ninit()\n");
+    ////printf("-----------------------------------\ninit()\n");
     /* create the initial empty heap */
     if ((prologue = mem_sbrk(CHUNKSIZE)) == (void*)-1)
         return -1;
@@ -140,7 +140,7 @@ void *mm_malloc(size_t size) {
     if (asize < MIN_BLOCK_SIZE) {
         asize = MIN_BLOCK_SIZE;
     }
-    printf("mm_malloc(%d)\n", asize);
+    //printf("mm_malloc(%d)\n", asize);
     /* Search the free list for a fit */
     if ((block = find_fit(asize)) != NULL) {
         place(block, asize);
@@ -170,7 +170,7 @@ void mm_free(void *payload) {
     block->allocated = FREE;
     footer_t *footer = get_footer(block);
     footer->allocated = FREE;
-    printf("free(%p)\n", block);
+    //printf("free(%p)\n", block);
     //insertBlock(block);
     coalesce(block);
     printList();
@@ -187,7 +187,7 @@ void *mm_realloc(void *ptr, size_t size) {
     size_t copySize;
 
     if ((newp = mm_malloc(size)) == NULL) {
-        printf("ERROR: mm_malloc failed in mm_realloc\n");
+        //printf("ERROR: mm_malloc failed in mm_realloc\n");
         exit(1);
     }
     block_t* block = ptr - sizeof(header_t);
@@ -206,10 +206,10 @@ void mm_checkheap(int verbose) {
     block_t *block = prologue;
 
     if (verbose)
-        printf("Heap (%p):\n", prologue);
+        //printf("Heap (%p):\n", prologue);
 
     if (block->block_size != sizeof(header_t) || !block->allocated)
-        printf("Bad prologue header\n");
+        //printf("Bad prologue header\n");
     checkblock(prologue);
 
     /* iterate through the heap (both free and allocated blocks will be present) */
@@ -232,7 +232,7 @@ void mm_checkheap(int verbose) {
  */
 /* $begin mmextendheap */
 static block_t *extend_heap(size_t words) {
-    printf("extend_heap(%d)\n", (int)words);
+    //printf("extend_heap(%d)\n", (int)words);
     printList();
     block_t *block;
     uint32_t size;
@@ -301,11 +301,30 @@ static block_t *find_fit(size_t asize) {
     /* first fit search */
     block_t *b;
 
-    for (b = (void*)prologue + prologue->block_size; b->block_size > 0; b = (void *)b + b->block_size) {
+    //printf("\n");
+    for (b = (void*)root; b != NULL; b = (void*)b->body.next) {
+        /* block must be free and the size must be large enough to hold the request */
+        //printf("%p\n", b);
+        //printblock(b);
+        //printf("%d\n", b->block_size < asize);
+        //printf("infinite loop:(");
+        //int a = 0;
+        //printf("%dd", a+1);
         /* block must be free and the size must be large enough to hold the request */
         if (!b->allocated && asize <= b->block_size) {
             return b;
         }
+        /*if (b->block_size < asize){
+            //printf("horray");
+            return NULL;
+        }
+        if (!b->allocated) {
+            if ((b->block_size >= asize))
+                return b;
+            else{
+                return NULL;
+            }
+        }*/
     }
     return NULL; /* no fit */
 }
@@ -320,12 +339,12 @@ static block_t *coalesce(block_t *block) {
     bool prev_alloc = prev_footer->allocated;
     bool next_alloc = next_header->allocated;
     if (prev_alloc && next_alloc) { /* Case 1 */
-        printf("case 1\n");
+        //printf("case 1\n");
         insertBlock(block);
         /* no coalesceing */
     }
     else if (prev_alloc && !next_alloc) { /* Case 2 */
-        printf("case 2\n");
+        //printf("case 2\n");
         /* Update header of current block to include next block's size */
         block->block_size += next_header->block_size;
         /* Update footer of next block to reflect new size */
@@ -336,7 +355,7 @@ static block_t *coalesce(block_t *block) {
         insertBlock(block);
     }
     else if (!prev_alloc && next_alloc) { /* Case 3 */
-        printf("case 3\n");
+        //printf("case 3\n");
         /* Update header of prev block to include cuprintlistrrent block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         prev_block->block_size += block->block_size;
@@ -346,7 +365,7 @@ static block_t *coalesce(block_t *block) {
         block = prev_block;
     }
     else { /* Case 4 */
-        printf("case 4\n");
+        //printf("case 4\n");
         /* Update header of prev block to include current and next block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         
@@ -368,7 +387,7 @@ static footer_t* get_footer(block_t *block) {
 }
 
 static void printblock(block_t *block) {
-    uint32_t hsize, halloc, fsize, falloc;
+/*     uint32_t hsize, halloc, fsize, falloc;
 
     hsize = block->block_size;
     halloc = block->allocated;
@@ -381,8 +400,8 @@ static void printblock(block_t *block) {
         return;
     }
 
-    printf("%p: header: [%d:%c] footer: [%d:%c]\n", block, hsize,
-           (halloc ? 'a' : 'f'), fsize, (falloc ? 'a' : 'f'));
+    //printf("%p: header: [%d:%c] footer: [%d:%c]\n", block, hsize,
+           //(halloc ? 'a' : 'f'), fsize, (falloc ? 'a' : 'f')); */
 }
 
 static void checkblock(block_t *block) {
@@ -397,48 +416,48 @@ static void checkblock(block_t *block) {
 
 static void printList() {
     int numFree = printALL();
-    printf("list:\n");
+    //printf("list:\n");
     block_t * head = root;
     block_t *tail = NULL;
     int i = 0; int j = 0;
     while (head != NULL)
     {
-        printblock(head);
+        //printblock(head);
         if (head->allocated != 0)
         {
-        printf("list has allocated!\n");
+        //printf("list has allocated!\n");
         exit(1);
         }
 
         if (((header_t*)head)->block_size != get_footer(head)->block_size)
         {
-            printf("mismatching header and footer!");
+            //printf("mismatching header and footer!");
             exit(1);
         }
         tail = head;
         head = (void*)head->body.next;
         i++;
     }
-    printf("backwards now<<<<<<<<<<<<<<<<<<<\n");
+    //printf("backwards now<<<<<<<<<<<<<<<<<<<\n");
     while (tail != NULL)
     {
-        printblock(tail);
+        //printblock(tail);
         tail = (void*)tail->body.prev;
         j++;
     }
     if (i != j)
     {
-        printf("inconsistent prev & next!\n");
+        //printf("inconsistent prev & next!\n");
         exit(1);
     }
     if (i < numFree)
     {
-        printf("missing some free blocks!\n");
+        //printf("missing some free blocks!\n");
         exit(1);
     }
     if (i > numFree)
     {
-        printf("too many free blocks!\n");
+        //printf("too many free blocks!\n");
         exit(1);
     }
 }
@@ -446,7 +465,7 @@ static void printList() {
 void insertBlock(block_t *toInsert) {
     if (root != NULL) //LIFO
     {
-        printf("insert %p\n", toInsert);
+        //printf("insert %p\n", toInsert);
         root->body.prev = (void*)toInsert;
         toInsert->body.next = (void*)root;
         toInsert->body.prev = NULL;
@@ -474,7 +493,7 @@ void deleteBlock(block_t *toDelete) {
     if (toDelete == root)
     {    
         root = next;
-        printf("root: %p\n", root);
+        //printf("root: %p\n", root);
     }
     toDelete->body.next = NULL;
     toDelete->body.prev = NULL;
@@ -484,11 +503,11 @@ void deleteBlock(block_t *toDelete) {
 
 int printALL()
 {
-    printf("printall:\n");
+    //printf("printall:\n");
     int result = 0;
     for (block_t *b = (void*)prologue + prologue->block_size; b->block_size > 0; b = (void *)b + b->block_size) {
     /* block must be free and the size must be large enough to hold the request */
-        printblock(b);
+        //printblock(b);
         if (b->allocated == 0)
             result++;
     

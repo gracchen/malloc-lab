@@ -67,8 +67,8 @@ typedef struct {
 enum block_state { FREE,
                    ALLOC };
 
-//#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
-#define CHUNKSIZE (4088*1+16)
+#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
+//#define CHUNKSIZE (4088*1+16)
 block_t *root;
 #define OVERHEAD (sizeof(header_t) + sizeof(footer_t)) /* overhead of the header and footer of an allocated block */
 #define MIN_BLOCK_SIZE (32) /* the minimum block size needed to keep in a freelist (header + footer + next pointer + prev pointer) */
@@ -87,7 +87,7 @@ static void checkblock(block_t *block);
 static void printList(); //1
 void insertBlock(block_t *toInsert); //2
 void deleteBlock(block_t *toDelete); //2
-void printALL();
+int printALL();
 
 /*
  * mm_init - Initialize the memory manager
@@ -173,6 +173,7 @@ void mm_free(void *payload) {
     printf("free(%p)\n", block);
     //insertBlock(block);
     coalesce(block);
+    printList();
 }
 
 /* $end mmfree */
@@ -289,6 +290,7 @@ static void place(block_t *block, size_t asize) {
         footer->allocated = ALLOC;
         deleteBlock(block);
     }
+    printList();
 }
 /* $end mmplace */
 
@@ -350,11 +352,12 @@ static block_t *coalesce(block_t *block) {
         
         prev_block->block_size += block->block_size + next_header->block_size;
         /* Update footer of next block to reflect new size */
-        deleteBlock((block_t*)next_header);
+        
         
         footer_t *next_footer = get_footer(prev_block);
         next_footer->block_size = prev_block->block_size;
         block = prev_block;
+        deleteBlock((block_t*)next_header);
     }
     printList();
     return block;
@@ -393,21 +396,50 @@ static void checkblock(block_t *block) {
 }
 
 static void printList() {
-    printALL();
+    int numFree = printALL();
     printf("list:\n");
     block_t * head = root;
     block_t *tail = NULL;
+    int i = 0; int j = 0;
     while (head != NULL)
     {
         printblock(head);
+        if (head->allocated != 0)
+        {
+        printf("list has allocated!\n");
+        exit(1);
+        }
+
+        if (((header_t*)head)->block_size != get_footer(head)->block_size)
+        {
+            printf("mismatching header and footer!");
+            exit(1);
+        }
         tail = head;
         head = (void*)head->body.next;
+        i++;
     }
     printf("backwards now<<<<<<<<<<<<<<<<<<<\n");
     while (tail != NULL)
     {
         printblock(tail);
         tail = (void*)tail->body.prev;
+        j++;
+    }
+    if (i != j)
+    {
+        printf("inconsistent prev & next!\n");
+        exit(1);
+    }
+    if (i < numFree)
+    {
+        printf("missing some free blocks!\n");
+        exit(1);
+    }
+    if (i > numFree)
+    {
+        printf("too many free blocks!\n");
+        exit(1);
     }
 }
 
@@ -427,7 +459,7 @@ void insertBlock(block_t *toInsert) {
         toInsert->body.prev = NULL;
     }
     //root = toInsert;
-    printList();
+    //printList();
 }
 
 void deleteBlock(block_t *toDelete) {
@@ -447,14 +479,19 @@ void deleteBlock(block_t *toDelete) {
     toDelete->body.next = NULL;
     toDelete->body.prev = NULL;
 
-    printList();
+    //printList();
 }
 
-void printALL()
+int printALL()
 {
     printf("printall:\n");
+    int result = 0;
     for (block_t *b = (void*)prologue + prologue->block_size; b->block_size > 0; b = (void *)b + b->block_size) {
     /* block must be free and the size must be large enough to hold the request */
         printblock(b);
-}
+        if (b->allocated == 0)
+            result++;
+    
+    }
+    return result;
 }

@@ -35,11 +35,11 @@
 /* Your info */
 team_t team = {
     /* First and last name */
-    "implicit first fit",
+    "Grace Chen",
     /* UID */
-    "123456789",
+    "805697622",
     /* Custom message (16 chars) */
-    "",
+    "D00m3d 2 f@!|",
 };
 
 typedef struct {
@@ -67,7 +67,9 @@ typedef struct {
 enum block_state { FREE,
                    ALLOC };
 
-#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
+//#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
+#define CHUNKSIZE (4088+16)
+block_t *root;
 #define OVERHEAD (sizeof(header_t) + sizeof(footer_t)) /* overhead of the header and footer of an allocated block */
 #define MIN_BLOCK_SIZE (32) /* the minimum block size needed to keep in a freelist (header + footer + next pointer + prev pointer) */
 
@@ -82,12 +84,16 @@ static block_t *coalesce(block_t *block);
 static footer_t *get_footer(block_t *block);
 static void printblock(block_t *block);
 static void checkblock(block_t *block);
+static void printList(block_t *head); //1
+void insertBlock(block_t *toInsert); //2
+void deleteBlock(block_t *toDelete); //2
 
 /*
  * mm_init - Initialize the memory manager
  */
 /* $begin mminit */
 int mm_init(void) {
+    printf("-----------------------------------\ninit()\n");
     /* create the initial empty heap */
     if ((prologue = mem_sbrk(CHUNKSIZE)) == (void*)-1)
         return -1;
@@ -105,6 +111,9 @@ int mm_init(void) {
     block_t *epilogue = (void *)init_block + init_block->block_size;
     epilogue->allocated = ALLOC;
     epilogue->block_size = 0;
+    root = NULL;
+    insertBlock(init_block);
+    printList(root);
     return 0;
 }
 /* $end mminit */
@@ -131,7 +140,7 @@ void *mm_malloc(size_t size) {
     if (asize < MIN_BLOCK_SIZE) {
         asize = MIN_BLOCK_SIZE;
     }
-
+    printf("mm_malloc(%d)\n", asize);
     /* Search the free list for a fit */
     if ((block = find_fit(asize)) != NULL) {
         place(block, asize);
@@ -157,6 +166,10 @@ void *mm_malloc(size_t size) {
  */
 /* $begin mmfree */
 void mm_free(void *payload) {
+    printf("free(%p)\n", payload);
+    deleteBlock(root);
+    printList(root);
+    
     block_t *block = payload - sizeof(header_t);
     block->allocated = FREE;
     footer_t *footer = get_footer(block);
@@ -220,6 +233,7 @@ void mm_checkheap(int verbose) {
  */
 /* $begin mmextendheap */
 static block_t *extend_heap(size_t words) {
+    printf("extend_heap(%d)\n", (int)words);
     block_t *block;
     uint32_t size;
     size = words << 3; // words*8
@@ -367,4 +381,43 @@ static void checkblock(block_t *block) {
     if (block->block_size != footer->block_size) {
         printf("Error: header does not match footer\n");
     }
+}
+
+static void printList(block_t *head) {
+    printf("list:\n");
+    while (head != NULL)
+    {
+        printblock(head);
+        head = (void*)head->body.next;
+    }
+}
+
+void insertBlock(block_t *toInsert) {
+    if (root != NULL) //LIFO
+    {
+        root->body.prev = (void*)toInsert;
+        toInsert->body.next = (void*)root;
+    }
+    else //list empty
+    { 
+        root = toInsert;
+        toInsert->body.next = NULL;
+        toInsert->body.prev = NULL;
+    }
+    //root = toInsert;
+}
+
+void deleteBlock(block_t *toDelete) {
+    
+    block_t* prev = (void*) toDelete->body.prev;
+    block_t* next = (void*) toDelete->body.next;
+    if (prev != NULL)
+        prev->body.next = (void*) next;
+    if (next != NULL)
+        next->body.prev = (void*) prev;
+
+    if (toDelete == root)
+        root = next;
+    toDelete->body.next = NULL;
+    toDelete->body.prev = NULL;
 }

@@ -68,7 +68,7 @@ enum block_state { FREE,
                    ALLOC };
 
 //#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
-#define CHUNKSIZE (4088*2+16)
+#define CHUNKSIZE (4088*3+16)
 block_t *root;
 #define OVERHEAD (sizeof(header_t) + sizeof(footer_t)) /* overhead of the header and footer of an allocated block */
 #define MIN_BLOCK_SIZE (32) /* the minimum block size needed to keep in a freelist (header + footer + next pointer + prev pointer) */
@@ -84,7 +84,7 @@ static block_t *coalesce(block_t *block);
 static footer_t *get_footer(block_t *block);
 static void printblock(block_t *block);
 static void checkblock(block_t *block);
-static void printList(block_t *head); //1
+static void printList(); //1
 void insertBlock(block_t *toInsert); //2
 void deleteBlock(block_t *toDelete); //2
 void printALL();
@@ -171,7 +171,7 @@ void mm_free(void *payload) {
     footer_t *footer = get_footer(block);
     footer->allocated = FREE;
     printf("free(%p)\n", block);
-    insertBlock(block);
+    //insertBlock(block);
     coalesce(block);
 }
 
@@ -313,15 +313,15 @@ static block_t *find_fit(size_t asize) {
 static block_t *coalesce(block_t *block) {
     footer_t *prev_footer = (void *)block - sizeof(header_t);
     header_t *next_header = (void *)block + block->block_size;
+    
     bool prev_alloc = prev_footer->allocated;
     bool next_alloc = next_header->allocated;
-
+    printf("prev_alloc: %d, next_alloc: %d\n", prev_alloc, next_alloc);
     if (prev_alloc && next_alloc) { /* Case 1 */
         printf("case 1\n");
+        insertBlock(block);
         /* no coalesceing */
-        return block;
     }
-
     else if (prev_alloc && !next_alloc) { /* Case 2 */
         printf("case 2\n");
         /* Update header of current block to include next block's size */
@@ -332,32 +332,31 @@ static block_t *coalesce(block_t *block) {
 
         deleteBlock((block_t*)next_header);
         insertBlock(block);
-        printList(root);
     }
-
     else if (!prev_alloc && next_alloc) { /* Case 3 */
         printf("case 3\n");
-        /* Update header of prev block to include current block's size */
+        /* Update header of prev block to include cuprintlistrrent block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         prev_block->block_size += block->block_size;
         /* Update footer of current block to reflect new size */
         footer_t *footer = get_footer(prev_block);
         footer->block_size = prev_block->block_size;
         block = prev_block;
-        printList(root);
     }
-
     else { /* Case 4 */
         printf("case 4\n");
         /* Update header of prev block to include current and next block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
+        
         prev_block->block_size += block->block_size + next_header->block_size;
         /* Update footer of next block to reflect new size */
+        deleteBlock((block_t*)next_header);
+        
         footer_t *next_footer = get_footer(prev_block);
         next_footer->block_size = prev_block->block_size;
         block = prev_block;
     }
-
+    printList();
     return block;
 }
 
@@ -393,21 +392,33 @@ static void checkblock(block_t *block) {
     }
 }
 
-static void printList(block_t *head) {
+static void printList() {
     printALL();
     printf("list:\n");
+    block_t * head = root;
+    block_t *tail = NULL;
     while (head != NULL)
     {
         printblock(head);
+        tail = head;
         head = (void*)head->body.next;
+    }
+    printf("backwards now<<<<<<<<<<<<<<<<<<<\n");
+    while (tail != NULL)
+    {
+        printblock(tail);
+        tail = (void*)tail->body.prev;
     }
 }
 
 void insertBlock(block_t *toInsert) {
     if (root != NULL) //LIFO
     {
+        printf("insert %p\n", toInsert);
         root->body.prev = (void*)toInsert;
         toInsert->body.next = (void*)root;
+        toInsert->body.prev = NULL;
+        root = toInsert;
     }
     else //list empty
     { 
@@ -416,7 +427,7 @@ void insertBlock(block_t *toInsert) {
         toInsert->body.prev = NULL;
     }
     //root = toInsert;
-    printList(root);
+    printList();
 }
 
 void deleteBlock(block_t *toDelete) {
@@ -429,11 +440,14 @@ void deleteBlock(block_t *toDelete) {
         next->body.prev = (void*) prev;
 
     if (toDelete == root)
+    {    
         root = next;
+        printf("root: %p\n", root);
+    }
     toDelete->body.next = NULL;
     toDelete->body.prev = NULL;
 
-    printList(root);
+    printList();
 }
 
 void printALL()

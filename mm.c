@@ -1,4 +1,4 @@
-/* 8 byte alignment
+/*
  * mm.c -  Simple allocator based on implicit free lists,
  *         first fit placement, and boundary tag coalescing.
  *
@@ -35,11 +35,11 @@
 /* Your info */
 team_t team = {
     /* First and last name */
-    "Grace Chen",
+    "implicit first fit",
     /* UID */
-    "805697622",
+    "123456789",
     /* Custom message (16 chars) */
-    "Doomed to fail..",
+    "",
 };
 
 typedef struct {
@@ -51,15 +51,15 @@ typedef struct {
 typedef header_t footer_t;
 
 typedef struct {
-    uint32_t allocated : 1; //lsb
-    uint32_t block_size : 31; //32 bits total
-    uint32_t _; //4 byte padding
+    uint32_t allocated : 1;
+    uint32_t block_size : 31;
+    uint32_t _;
     union {
         struct {
-            struct block_t* next; //16 byte minimum
+            struct block_t* next;
             struct block_t* prev;
         };
-        int payload[0]; //or allocated mem
+        int payload[0]; 
     } body;
 } block_t;
 
@@ -73,7 +73,6 @@ enum block_state { FREE,
 
 /* Global variables */
 static block_t *prologue; /* pointer to first block */
-block_t *firstFree; /*pointer to first free block */
 
 /* function prototypes for internal helper routines */
 static block_t *extend_heap(size_t words);
@@ -86,23 +85,19 @@ static void checkblock(block_t *block);
 
 /*
  * mm_init - Initialize the memory manager
- */ //double word = 4 byte chunks array
+ */
 /* $begin mminit */
-int mm_init(void) { /////!!!!!!!!!!!!
+int mm_init(void) {
     /* create the initial empty heap */
-    if ((prologue = mem_sbrk(CHUNKSIZE)) == (void*)-1)  //set prologue to start of new 2^16 byte chunk
+    if ((prologue = mem_sbrk(CHUNKSIZE)) == (void*)-1)
         return -1;
     /* initialize the prologue */
-    prologue->allocated = ALLOC;  //never freed
-    prologue->block_size = sizeof(header_t); //
+    prologue->allocated = ALLOC;
+    prologue->block_size = sizeof(header_t);
     /* initialize the first free block */
-    block_t *init_block = (void *)prologue + sizeof(header_t); //(void*) generic pointer + header, after prologue
-    firstFree = init_block;
-    firstFree->body.prev = NULL;
-    firstFree->body.next = NULL;
-    //init_block->prev = NULL; //init_block->next = NULL;
+    block_t *init_block = (void *)prologue + sizeof(header_t);
     init_block->allocated = FREE;
-    init_block->block_size = CHUNKSIZE - OVERHEAD; //2^16 - 16 aka 1 header & 1 footer (prologue, epilogue?)
+    init_block->block_size = CHUNKSIZE - OVERHEAD;
     footer_t *init_footer = get_footer(init_block);
     init_footer->allocated = FREE;
     init_footer->block_size = init_block->block_size;
@@ -129,29 +124,19 @@ void *mm_malloc(size_t size) {
         return NULL;
 
     /* Adjust block size to include overhead and alignment reqs. */
-    size += OVERHEAD; //8 + 2040 + 8
+    size += OVERHEAD;
 
     asize = ((size + 7) >> 3) << 3; /* align to multiple of 8 */
     
     if (asize < MIN_BLOCK_SIZE) {
         asize = MIN_BLOCK_SIZE;
     }
-    //printf("malloc(%d):\n", asize);
+
     /* Search the free list for a fit */
     if ((block = find_fit(asize)) != NULL) {
         place(block, asize);
-        /*for (block_t *b = (void*)firstFree; b != NULL ; b = (void*)b->body.next) {
-            printblock(b);
-            if (b == (void*)(b->body.next))
-                exit(1);
-        }*/
         return block->body.payload;
     }
-        /*for (block_t *b = (void*)firstFree; b != NULL ; b = (void*)b->body.next) {
-            printblock(b);
-            if (b == (void*)(b->body.next))
-                exit(1);
-        }*/
 
     /* No fit found. Get more memory and place the block */
     extendsize = (asize > CHUNKSIZE) // extend by the larger of the two
@@ -172,18 +157,11 @@ void *mm_malloc(size_t size) {
  */
 /* $begin mmfree */
 void mm_free(void *payload) {
-    
     block_t *block = payload - sizeof(header_t);
-    //printf("\nfree:%p\n", block);
     block->allocated = FREE;
     footer_t *footer = get_footer(block);
     footer->allocated = FREE;
     coalesce(block);
-    /*for (block_t *b = (void*)firstFree; b != NULL ; b = (void*)b->body.next) {
-        printblock(b);
-        if (b == (void*)(b->body.next))
-            exit(1);
-    }*/
 }
 
 /* $end mmfree */
@@ -253,7 +231,6 @@ static block_t *extend_heap(size_t words) {
     block = (void *)block - sizeof(header_t);
     block->allocated = FREE;
     block->block_size = size;
-    block->body.next = NULL;
     /* free block footer */
     footer_t *block_footer = get_footer(block);
     block_footer->allocated = FREE;
@@ -274,9 +251,6 @@ static block_t *extend_heap(size_t words) {
 /* $begin mmplace */
 static void place(block_t *block, size_t asize) {
     size_t split_size = block->block_size - asize;
-    block_t *Prev = (void*) block->body.prev;
-    block_t *Next = (void*)block->body.next;
-    //printf("%p:%p\n", (void*)Prev, (void*)block);
     if (split_size >= MIN_BLOCK_SIZE) {
         /* split the block by updating the header and marking it allocated*/
         block->block_size = asize;
@@ -293,69 +267,11 @@ static void place(block_t *block, size_t asize) {
         footer_t *new_footer = get_footer(new_block);
         new_footer->block_size = split_size;
         new_footer->allocated = FREE;
-
-        new_block->body.prev = (void*)Prev;
-        if (new_block != Next)
-            new_block->body.next = (void*)Next;
-        if (block == firstFree)
-        {
-            firstFree = new_block;
-            firstFree->body.prev = NULL;
-            //firstFree->body.next = (void*)Next;
-            if (firstFree == (void*)firstFree->body.next)
-            {
-                exit(3);
-            }
-            if (Next != NULL)
-            {
-                Next->body.prev = (void*)new_block;
-            }
-        }
-        else {
-            if (Prev != NULL)
-                Prev->body.next = (void*)new_block;
-            if (Next != NULL)
-                Next->body.prev = (void*)new_block;
-            new_block->body.prev = (void*)Prev;
-            new_block->body.next = (void*)Next;
-        }
-    } else { //#2
+    } else {
         /* splitting the block will cause a splinter so we just include it in the allocated block */
         block->allocated = ALLOC;
         footer_t *footer = get_footer(block);
         footer->allocated = ALLOC;
-
-        if (block == firstFree)
-        {
-            if (firstFree->body.next == NULL)
-                firstFree = NULL; //full
-            else {
-                firstFree = (void*)firstFree->body.next;
-                if (firstFree == (void*)firstFree->body.next)
-                {
-                    exit(4);
-                }
-                firstFree->body.prev = NULL;
-            }
-        }
-        else {
-            if (Prev != NULL) //only null if block = firstFree
-            {
-                Prev->body.next = (void*)Next; 
-                //firstFree = Prev; 
-                //firstFree->body.prev = NULL;
-            }    
-            if (Next != NULL)
-            {
-                Next->body.prev = (void*)Prev;
-                //firstFree = Next;
-                //firstFree->body.prev = NULL;
-            }
-            if (Prev == NULL && Next == NULL)
-            {
-                firstFree = NULL; //full, no more free
-            }
-        }
     }
 }
 /* $end mmplace */
@@ -367,30 +283,11 @@ static block_t *find_fit(size_t asize) {
     /* first fit search */
     block_t *b;
 
-    //printf("\n");
-    for (b = (void*)firstFree; b != NULL; b = (void*)b->body.next) {
-        /* block must be free and the size must be large enough to hold the request */
-        //printf("%p\n", b);
-        //printblock(b);
-        //printf("%d\n", b->block_size < asize);
-        //printf("infinite loop:(");
-        //int a = 0;
-        //printf("%dd", a+1);
+    for (b = (void*)prologue + prologue->block_size; b->block_size > 0; b = (void *)b + b->block_size) {
         /* block must be free and the size must be large enough to hold the request */
         if (!b->allocated && asize <= b->block_size) {
             return b;
         }
-        /*if (b->block_size < asize){
-            //printf("horray");
-            return NULL;
-        }
-        if (!b->allocated) {
-            if ((b->block_size >= asize))
-                return b;
-            else{
-                return NULL;
-            }
-        }*/
     }
     return NULL; /* no fit */
 }
@@ -403,74 +300,21 @@ static block_t *coalesce(block_t *block) {
     header_t *next_header = (void *)block + block->block_size;
     bool prev_alloc = prev_footer->allocated;
     bool next_alloc = next_header->allocated;
-    block_t *oldFirstFree = firstFree;
-    //printf("%p:", block);
 
     if (prev_alloc && next_alloc) { /* Case 1 */
         /* no coalesceing */
-        //printf("case 1\n");
-        if (firstFree == NULL)
-        {
-            firstFree = block;
-            firstFree->body.prev = NULL;
-            firstFree->body.next = NULL;
-        }
-        else if (block < firstFree)
-        {
-            firstFree = block;
-            firstFree->body.next = (void*)oldFirstFree;
-            firstFree->body.prev = NULL;
-            oldFirstFree->body.prev = (void*)firstFree;
-        }
-        else
-        {
-            block_t *prev_free = NULL;
-            block_t *next_free = NULL;
-            for (next_free = (void*)firstFree; (next_free != NULL) && ((uintptr_t)next_free < (uintptr_t)block); next_free = (void*)next_free->body.next) {
-                if (next_free == (void*)(next_free->body.next))
-                    exit(1);
-                //printf("%p:%p\n", next_free, next_free->body.next);
-                prev_free = next_free;
-            }
-            if (prev_free != NULL)
-                prev_free->body.next = (void*)block;
-                //printf("prev not null!");}
-            if (next_free != NULL)
-                next_free->body.prev = (void*)block;
-                //printf("next not null!");}
-
-            block->body.prev = (void*)prev_free;
-            block->body.next = (void*)next_free;
-        }
         return block;
     }
-    /////// block /      /
-    else if (prev_alloc && !next_alloc) { /* Case 3 */ //use address first!!
-        //printf("case 3\n");
-        
+
+    else if (prev_alloc && !next_alloc) { /* Case 2 */
         /* Update header of current block to include next block's size */
         block->block_size += next_header->block_size;
         /* Update footer of next block to reflect new size */
         footer_t *next_footer = get_footer(block);
         next_footer->block_size = block->block_size;
-        
-        block_t* next_block = (void*)next_header;
-        block_t* Prev = (void *)next_block->body.prev;
-        block_t* Next = (void *)next_block->body.next;
-        
-        if (Prev != NULL)
-            Prev->body.next = (void *)block; //update parent
-        else{
-            firstFree = block;
-        }
-        if (Next != NULL) //update child
-            Next->body.prev = (void *)block;
-        block->body.next = (void*)Next;   //???????PREV
-        block->body.prev = (void*)Prev;
     }
-    //              / block  //////////////
-    else if (!prev_alloc && next_alloc) { /* Case 2 */
-        //printf("case 2\n");
+
+    else if (!prev_alloc && next_alloc) { /* Case 3 */
         /* Update header of prev block to include current block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         prev_block->block_size += block->block_size;
@@ -481,7 +325,6 @@ static block_t *coalesce(block_t *block) {
     }
 
     else { /* Case 4 */
-        //printf("case 4\n");
         /* Update header of prev block to include current and next block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         prev_block->block_size += block->block_size + next_header->block_size;
@@ -489,16 +332,6 @@ static block_t *coalesce(block_t *block) {
         footer_t *next_footer = get_footer(prev_block);
         next_footer->block_size = prev_block->block_size;
         block = prev_block;
-        block_t* next_block = (void*)next_header;
-
-        block_t *prevPrev = (void *)prev_block->body.prev;
-        block_t *nextNext = (void *)next_block->body.next;
-        block->body.prev = (void*)prevPrev;
-        block->body.next = (void*)nextNext;
-        if (prevPrev != NULL)
-            prevPrev->body.next = (void *)block; 
-        if (nextNext != NULL)
-            nextNext->body.prev = (void *)block;
     }
 
     return block;

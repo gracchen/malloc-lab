@@ -173,7 +173,7 @@ void mm_free(void *payload) {
     //printf("free(%p)\n", block);
     //insertBlock(block);
     coalesce(block);
-    printList();
+    //printList();
 }
 
 /* $end mmfree */
@@ -233,7 +233,7 @@ void mm_checkheap(int verbose) {
 /* $begin mmextendheap */
 static block_t *extend_heap(size_t words) {
     //printf("extend_heap(%d)\n", (int)words);
-    printList();
+    //printList();
     block_t *block;
     uint32_t size;
     size = words << 3; // words*8
@@ -290,7 +290,7 @@ static void place(block_t *block, size_t asize) {
         footer->allocated = ALLOC;
         deleteBlock(block);
     }
-    printList();
+    //printList();
 }
 /* $end mmplace */
 
@@ -303,28 +303,9 @@ static block_t *find_fit(size_t asize) {
 
     //printf("\n");
     for (b = (void*)root; b != NULL; b = (void*)b->body.next) {
-        /* block must be free and the size must be large enough to hold the request */
-        //printf("%p\n", b);
-        //printblock(b);
-        //printf("%d\n", b->block_size < asize);
-        //printf("infinite loop:(");
-        //int a = 0;
-        //printf("%dd", a+1);
-        /* block must be free and the size must be large enough to hold the request */
         if (!b->allocated && asize <= b->block_size) {
             return b;
         }
-        /*if (b->block_size < asize){
-            //printf("horray");
-            return NULL;
-        }
-        if (!b->allocated) {
-            if ((b->block_size >= asize))
-                return b;
-            else{
-                return NULL;
-            }
-        }*/
     }
     return NULL; /* no fit */
 }
@@ -378,7 +359,7 @@ static block_t *coalesce(block_t *block) {
         block = prev_block;
         deleteBlock((block_t*)next_header);
     }
-    printList();
+    //printList();
     return block;
 }
 

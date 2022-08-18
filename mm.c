@@ -68,7 +68,7 @@ enum block_state { FREE,
                    ALLOC };
 
 //#define CHUNKSIZE (1 << 16) /* initial heap size (bytes) */
-#define CHUNKSIZE (4088+16)
+#define CHUNKSIZE (4088*2+16)
 block_t *root;
 #define OVERHEAD (sizeof(header_t) + sizeof(footer_t)) /* overhead of the header and footer of an allocated block */
 #define MIN_BLOCK_SIZE (32) /* the minimum block size needed to keep in a freelist (header + footer + next pointer + prev pointer) */
@@ -87,6 +87,7 @@ static void checkblock(block_t *block);
 static void printList(block_t *head); //1
 void insertBlock(block_t *toInsert); //2
 void deleteBlock(block_t *toDelete); //2
+void printALL();
 
 /*
  * mm_init - Initialize the memory manager
@@ -113,7 +114,6 @@ int mm_init(void) {
     epilogue->block_size = 0;
     root = NULL;
     insertBlock(init_block);
-    printList(root);
     return 0;
 }
 /* $end mminit */
@@ -166,14 +166,12 @@ void *mm_malloc(size_t size) {
  */
 /* $begin mmfree */
 void mm_free(void *payload) {
-    printf("free(%p)\n", payload);
-    deleteBlock(root);
-    printList(root);
-    
     block_t *block = payload - sizeof(header_t);
     block->allocated = FREE;
     footer_t *footer = get_footer(block);
     footer->allocated = FREE;
+    printf("free(%p)\n", block);
+    insertBlock(block);
     coalesce(block);
 }
 
@@ -281,11 +279,14 @@ static void place(block_t *block, size_t asize) {
         footer_t *new_footer = get_footer(new_block);
         new_footer->block_size = split_size;
         new_footer->allocated = FREE;
+        deleteBlock(block);
+        insertBlock(new_block);
     } else {
         /* splitting the block will cause a splinter so we just include it in the allocated block */
         block->allocated = ALLOC;
         footer_t *footer = get_footer(block);
         footer->allocated = ALLOC;
+        deleteBlock(block);
     }
 }
 /* $end mmplace */
@@ -316,19 +317,26 @@ static block_t *coalesce(block_t *block) {
     bool next_alloc = next_header->allocated;
 
     if (prev_alloc && next_alloc) { /* Case 1 */
+        printf("case 1\n");
         /* no coalesceing */
         return block;
     }
 
     else if (prev_alloc && !next_alloc) { /* Case 2 */
+        printf("case 2\n");
         /* Update header of current block to include next block's size */
         block->block_size += next_header->block_size;
         /* Update footer of next block to reflect new size */
         footer_t *next_footer = get_footer(block);
         next_footer->block_size = block->block_size;
+
+        deleteBlock((block_t*)next_header);
+        insertBlock(block);
+        printList(root);
     }
 
     else if (!prev_alloc && next_alloc) { /* Case 3 */
+        printf("case 3\n");
         /* Update header of prev block to include current block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         prev_block->block_size += block->block_size;
@@ -336,9 +344,11 @@ static block_t *coalesce(block_t *block) {
         footer_t *footer = get_footer(prev_block);
         footer->block_size = prev_block->block_size;
         block = prev_block;
+        printList(root);
     }
 
     else { /* Case 4 */
+        printf("case 4\n");
         /* Update header of prev block to include current and next block's size */
         block_t *prev_block = (void *)prev_footer - prev_footer->block_size + sizeof(header_t);
         prev_block->block_size += block->block_size + next_header->block_size;
@@ -384,6 +394,7 @@ static void checkblock(block_t *block) {
 }
 
 static void printList(block_t *head) {
+    printALL();
     printf("list:\n");
     while (head != NULL)
     {
@@ -405,6 +416,7 @@ void insertBlock(block_t *toInsert) {
         toInsert->body.prev = NULL;
     }
     //root = toInsert;
+    printList(root);
 }
 
 void deleteBlock(block_t *toDelete) {
@@ -420,4 +432,15 @@ void deleteBlock(block_t *toDelete) {
         root = next;
     toDelete->body.next = NULL;
     toDelete->body.prev = NULL;
+
+    printList(root);
+}
+
+void printALL()
+{
+    printf("printall:\n");
+    for (block_t *b = (void*)prologue + prologue->block_size; b->block_size > 0; b = (void *)b + b->block_size) {
+    /* block must be free and the size must be large enough to hold the request */
+        printblock(b);
+}
 }
